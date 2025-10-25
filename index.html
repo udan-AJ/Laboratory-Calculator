@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Chem Lab Calculator — Molarity & Normality</title>
+  <style>
+    :root{
+      --bg:#0f1724; --card:#0b1220; --accent:#6ee7b7; --muted:#94a3b8; --glass: rgba(255,255,255,0.03);
+    }
+    *{box-sizing:border-box;font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial}
+    body{margin:0;min-height:100vh;background:radial-gradient(1000px 600px at 10% 10%, rgba(61, 138, 255, 0.10), transparent), linear-gradient(180deg,#071029,#071026);color:#e6eef6;display:flex;align-items:center;justify-content:center;padding:28px}
+    .wrapper{width:980px;max-width:98%;background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);border-radius:16px;padding:20px;box-shadow:0 10px 35px rgba(2,6,23,0.7);backdrop-filter: blur(6px)}
+    header{display:flex;gap:16px;align-items:center;margin-bottom:12px}
+    .logo{width:64px;height:64px;border-radius:12px;background:linear-gradient(135deg,var(--accent),#60a5fa);display:flex;align-items:center;justify-content:center;box-shadow:0 6px 18px rgba(102,126,234,0.12);font-weight:700}
+    h1{margin:0;font-size:20px}
+    p.lead{margin:0;color:var(--muted);font-size:13px}
+    .grid{display:grid;grid-template-columns:1fr 360px;gap:18px;margin-top:16px}
+
+    .card{background:var(--card);padding:18px;border-radius:12px}
+    label{display:block;font-size:13px;color:var(--muted);margin-bottom:8px}
+    .row{display:flex;gap:8px;margin-bottom:12px;align-items:center}
+    select,input[type=text],input[type=number]{width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:var(--glass);color:inherit;font-size:14px}
+    .inline{display:flex;gap:8px}
+    .small{font-size:12px;color:var(--muted)}
+    .muted{color:var(--muted)}
+    .btn{display:inline-flex;align-items:center;gap:8px;padding:10px 12px;border-radius:10px;background:linear-gradient(90deg,#0b1226, #071427);border:1px solid rgba(255,255,255,0.03);cursor:pointer}
+    .btn.primary{background:linear-gradient(90deg,var(--accent),#60a5fa);color:#012018;font-weight:600}
+    .result{background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);padding:12px;border-radius:10px}
+    .big{font-size:20px;font-weight:700}
+
+    /* small helpers & animations */
+    .fade{transition:all .28s cubic-bezier(.2,.9,.3,1)}
+    .hidden{opacity:0;transform:translateY(6px);pointer-events:none;height:0;overflow:hidden}
+    .visible{opacity:1;transform:none;height:auto}
+    .footer{margin-top:12px;font-size:12px;color:var(--muted)}
+
+    /* nice floating card */
+    .right-panel{position:relative}
+    .decor{position:absolute;right:-40px;top:-40px;width:150px;height:150px;border-radius:50%;background:linear-gradient(135deg, rgba(110,231,183,0.06), rgba(96,165,250,0.04));filter:blur(18px)}
+
+    /* responsive */
+    @media (max-width:880px){.grid{grid-template-columns:1fr;}.right-panel{order:-1}}
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <header>
+      <div class="logo">CL</div>
+      <div>
+        <h1>Chem Lab Calculator</h1>
+        <p class="lead">Prepare solutions quickly — Molarity & Normality for solids & liquids. Single-file, editable in Notepad.</p>
+      </div>
+    </header>
+
+    <div class="grid">
+      <div class="card">
+        <div class="row">
+          <div style="flex:1">
+            <label>Mode</label>
+            <select id="modeSelect" class="fade">
+              <option value="molarity">Molarity (M)</option>
+              <option value="normality">Normality (N)</option>
+            </select>
+          </div>
+          <div style="width:160px">
+            <label>State</label>
+            <select id="stateSelect" class="fade">
+              <option value="solid">Solid</option>
+              <option value="liquid">Liquid</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="row">
+          <div style="flex:1">
+            <label>Desired concentration</label>
+            <div style="display:flex;gap:8px;align-items:center">
+              <input id="concInput" type="number" min="0" step="any" placeholder="e.g. 0.1" />
+              <select id="concUnit">
+                <option value="M">M (molar)</option>
+                <option value="N">N (normal)</option>
+              </select>
+            </div>
+            <div class="small muted">Enter numeric value only (unit depends on selected mode)</div>
+          </div>
+        </div>
+
+        <div class="row">
+          <div style="flex:1">
+            <label>Final solution volume</label>
+            <div style="display:flex;gap:8px;align-items:center">
+              <input id="volInput" type="number" min="0" step="any" placeholder="e.g. 500" />
+              <select id="volUnit">
+                <option value="mL">mL</option>
+                <option value="L">L</option>
+              </select>
+            </div>
+            <div class="small muted">Volume of final prepared solution</div>
+          </div>
+        </div>
+
+        <hr style="border:none;height:1px;background:rgba(255,255,255,0.03);margin:12px 0;border-radius:2px">
+
+        <div id="reagentSection">
+          <div class="row">
+            <div style="flex:1">
+              <label>Molar mass (g·mol⁻¹)</label>
+              <input id="mmInput" type="number" min="0" step="any" placeholder="e.g. 58.44" />
+            </div>
+            <div style="width:140px">
+              <label>Purity (%)</label>
+              <input id="purityInput" type="number" min="0" max="100" step="any" value="100" />
+            </div>
+          </div>
+
+          <div id="equivRow" class="row">
+            <div style="flex:1">
+              <label>Number of equivalents per mole (for Normality)</label>
+              <input id="equivInput" type="number" min="0.0001" step="any" value="1" />
+              <div class="small muted">Examples: H₂SO₄ → 2, HCl → 1, MnO₄⁻ (redox) → # equivalents according to reaction</div>
+            </div>
+          </div>
+
+          <div id="liquidRow" class="row hidden fade">
+            <div style="flex:1">
+              <label>Density / Specific gravity (g·mL⁻¹ or unitless)</label>
+              <input id="densityInput" type="number" min="0" step="any" placeholder="e.g. 1.20 (g/mL)" />
+              <div class="small muted">If reagent is liquid: density in g/mL (or specific gravity). Example: conc. HCl ~1.18 g/mL</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:8px;margin-top:12px;align-items:center">
+          <button id="calcBtn" class="btn primary">Calculate</button>
+          <button id="resetBtn" class="btn">Reset</button>
+          <button id="copyBtn" class="btn">Copy results</button>
+        </div>
+
+        <div style="margin-top:12px" class="result">
+          <div id="resultOutput">
+            <div class="small muted">Results will appear here after calculation.</div>
+          </div>
+        </div>
+
+        <div class="footer">Tip: units — enter volume either in mL or L and choose the unit. Purity should be percent (100 if pure).</div>
+      </div>
+
+      <div class="right-panel">
+        <div class="card">
+          <h3 style="margin-top:0">About calculations</h3>
+          <p class="small muted">Formulas used (kept transparent so you can verify):</p>
+          <ul class="small muted">
+            <li><strong>Molarity (M)</strong>: moles required = M × V (L). mass (g) = moles × molar mass / purity_fraction</li>
+            <li><strong>Normality (N)</strong>: equivalents required = N × V (L). moles required = equivalents / equivalents_per_mole. mass (g) = moles × molar mass / purity_fraction</li>
+            <li><strong>Liquid reagent</strong>: volume (mL) = mass (g) / density (g/mL)</li>
+          </ul>
+
+          <div style="margin-top:12px">
+            <label class="small muted">Quick examples</label>
+            <div class="result small">
+              • Prepare 1 L of 0.1 M NaCl (58.44 g/mol) → mass = 0.1×1×58.44 = 5.844 g (if purity 100%).
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:12px;text-align:center;font-size:12px;color:var(--muted)">
+          © Udan Jayawardene<br>All rights reserved.
+        </div>
+
+        <div class="decor"></div>
+      </div>
+    </div>
+  </div>
+
+<script>
+  // Helpers
+  const $ = (id)=>document.getElementById(id);
+  const mode = $('modeSelect');
+  const state = $('stateSelect');
+  const equivRow = $('equivRow');
+  const liquidRow = $('liquidRow');
+  const calcBtn = $('calcBtn');
+  const resetBtn = $('resetBtn');
+  const copyBtn = $('copyBtn');
+  const resultOutput = $('resultOutput');
+
+  function showHideRows(){
+    // Equiv row only meaningful for Normality
+    if(mode.value === 'normality') equivRow.classList.remove('hidden'); else equivRow.classList.add('hidden');
+    // Liquid specific inputs
+    if(state.value === 'liquid') liquidRow.classList.remove('hidden'); else liquidRow.classList.add('hidden');
+  }
+  mode.addEventListener('change', showHideRows);
+  state.addEventListener('change', showHideRows);
+  showHideRows();
+
+  function toNumber(v){ const n = parseFloat(v); return isNaN(n)?0:n }
+
+  function formatNum(x, dp=4){ if(!isFinite(x)) return '—'; if(Math.abs(x) >= 1000) return Math.round(x*100)/100 + ''; return parseFloat(x.toFixed(dp))+'' }
+
+  calcBtn.addEventListener('click', ()=>{
+    // gather inputs
+    const modeVal = mode.value; // 'molarity' or 'normality'
+    const stateVal = state.value; // 'solid' or 'liquid'
+
+    const conc = toNumber($('concInput').value);
+    const volRaw = toNumber($('volInput').value);
+    const volUnit = $('volUnit').value; // mL or L
+    const mm = toNumber($('mmInput').value);
+    const purity = toNumber($('purityInput').value) || 100;
+    const equiv = toNumber($('equivInput').value) || 1;
+    const density = toNumber($('densityInput').value) || 0; // if 0 and liquid selected -> warn
+
+    // Validate
+    const errors = [];
+    if(conc <= 0) errors.push('Enter a positive concentration value.');
+    if(volRaw <= 0) errors.push('Enter a positive final solution volume.');
+    if(mm <= 0) errors.push('Enter a positive molar mass.');
+    if(purity <= 0 || purity>100) errors.push('Purity should be between 0 and 100%.');
+    if(modeVal==='normality' && equiv <= 0) errors.push('Number of equivalents must be > 0.');
+    if(stateVal==='liquid' && density <= 0) errors.push('For liquid reagents provide density (g/mL) or specific gravity.');
+
+    if(errors.length){ resultOutput.innerHTML = '<div style="color:#ffb4b4"><strong>Errors:</strong><ul>'+errors.map(e=>'<li>'+e+'</li>').join('')+'</ul></div>'; return }
+
+    // Normalize volume to liters
+    const volL = (volUnit==='mL') ? volRaw/1000 : volRaw; // in liters
+
+    // Now compute
+    let mass_g = null; // grams
+    let vol_mL = null; // reagent volume in mL if liquid
+    let steps = [];
+
+    const purityFrac = purity/100.0;
+
+    if(modeVal === 'molarity'){
+      // moles required = M * V(L)
+      const moles = conc * volL;
+      mass_g = moles * mm / purityFrac; // mass in g
+      steps.push(`Moles required = ${conc} × ${volL} L = ${formatNum(moles,6)} mol`);
+      steps.push(`Mass = moles × M_molar = ${formatNum(moles,6)} × ${mm} / ${purityFrac} = ${formatNum(mass_g,6)} g`);
+
+      if(stateVal === 'liquid'){
+        vol_mL = mass_g / density; // g / (g/mL) => mL
+        steps.push(`Liquid volume = mass / density = ${formatNum(mass_g,6)} g ÷ ${density} g·mL⁻¹ = ${formatNum(vol_mL,6)} mL`);
+      }
+    } else {
+      // Normality
+      // equivalents required = N * V(L)
+      const eq_needed = conc * volL; // equivalents
+      const moles = eq_needed / equiv; // moles of compound
+      mass_g = moles * mm / purityFrac;
+      steps.push(`Equivalents required = ${conc} × ${volL} L = ${formatNum(eq_needed,6)} eq`);
+      steps.push(`Moles required = equivalents / equiv_per_mole = ${formatNum(eq_needed,6)} ÷ ${equiv} = ${formatNum(moles,6)} mol`);
+      steps.push(`Mass = moles × M_molar / purity = ${formatNum(moles,6)} × ${mm} ÷ ${purityFrac} = ${formatNum(mass_g,6)} g`);
+
+      if(stateVal === 'liquid'){
+        vol_mL = mass_g / density;
+        steps.push(`Liquid volume = mass / density = ${formatNum(mass_g,6)} g ÷ ${density} g·mL⁻¹ = ${formatNum(vol_mL,6)} mL`);
+      }
+    }
+
+    const outParts = [];
+    outParts.push('<div><strong>Summary</strong></div>');
+    outParts.push('<div style="margin-top:8px">');
+    outParts.push('<div class="small muted">Requested:</div>');
+    outParts.push(`<div class="big">${conc} ${modeVal==='molarity'?'M':'N'} — ${volRaw} ${$('volUnit').value}</div>`);
+    outParts.push('</div>');
+
+    outParts.push('<div style="margin-top:8px">');
+    outParts.push('<div class="small muted">Results</div>');
+    outParts.push('<div style="margin-top:6px">');
+    outParts.push(`<div>Mass required (solid or total mass): <strong>${formatNum(mass_g,6)} g</strong></div>`);
+    if(stateVal==='liquid') outParts.push(`<div>Liquid reagent volume: <strong>${formatNum(vol_mL,6)} mL</strong></div>`);
+    outParts.push('</div></div>');
+
+    outParts.push('<div style="margin-top:10px">');
+    outParts.push('<details><summary style="cursor:pointer">Show calculation steps</summary><div style="margin-top:8px">'+steps.map(s=>'<div class="small muted">• '+s+'</div>').join('')+'</div></details>');
+    outParts.push('</div>');
+
+    resultOutput.innerHTML = outParts.join('');
+  });
+
+  resetBtn.addEventListener('click', ()=>{
+    $('concInput').value=''; $('volInput').value=''; $('mmInput').value=''; $('purityInput').value='100'; $('equivInput').value='1'; $('densityInput').value=''; resultOutput.innerHTML='<div class="small muted">Results will appear here after calculation.</div>';
+  });
+
+  copyBtn.addEventListener('click', ()=>{
+    const text = resultOutput.innerText || resultOutput.textContent;
+    navigator.clipboard.writeText(text).then(()=>{ alert('Results copied to clipboard') }, ()=>{ alert('Copy failed — your browser may not allow clipboard access') });
+  });
+</script>
+</body>
+</html>
